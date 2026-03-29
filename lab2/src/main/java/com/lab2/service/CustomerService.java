@@ -1,19 +1,37 @@
 package com.lab2.service;
 
+
 import com.lab2.entity.Customer;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 import java.util.Optional;
 
 public interface CustomerService {
 
-    List<Customer> getAllCustomers();
+    /**
+     * Получить всех клиентов с пагинацией и фильтрацией
+     */
+    Page<Customer> getAllCustomers(String firstName, String lastName, String email, Pageable pageable);
 
+    /**
+     * Получить клиента по ID
+     */
     Optional<Customer> getCustomerById(Long id);
 
+    /**
+     * Создать нового клиента
+     */
     Customer createCustomer(Customer customer);
 
+    /**
+     * Обновить клиента
+     */
     Customer updateCustomer(Long id, Customer customer);
 
+    /**
+     * Удалить клиента
+     */
     void deleteCustomer(Long id);
 }
