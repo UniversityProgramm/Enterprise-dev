@@ -1,6 +1,7 @@
 package com.lab3.service;
 
 import com.lab3.entity.Customer;
+import com.lab3.jms.NotificationProducer;
 import com.lab3.repository.CustomerRepository;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -18,14 +19,18 @@ import java.util.Optional;
 public class CustomerServiceImpl implements CustomerService {
 
     private final CustomerRepository customerRepository;
+    private final NotificationProducer notificationProducer;
 
-    public CustomerServiceImpl(CustomerRepository customerRepository) {
+    public CustomerServiceImpl(CustomerRepository customerRepository,
+                               NotificationProducer notificationProducer) {
         this.customerRepository = customerRepository;
+        this.notificationProducer = notificationProducer;
     }
 
     @Override
     @Transactional(readOnly = true)
-    @Cacheable(value = "allCustomers", key = "#pageable.pageNumber + '-' + #pageable.pageSize + '-' + #firstName + '-' + #lastName + '-' + #email + '-' + #pageable.sort")
+    @Cacheable(value = "allCustomers",
+            key = "#pageable.pageNumber + '-' + #pageable.pageSize + '-' + #firstName + '-' + #lastName + '-' + #email + '-' + #pageable.sort")
     public Page<Customer> getAllCustomers(String firstName, String lastName, String email, Pageable pageable) {
         Specification<Customer> spec = (root, query, cb) -> cb.conjunction();
 
@@ -56,18 +61,29 @@ public class CustomerServiceImpl implements CustomerService {
 
     @Override
     @CacheEvict(value = {"customers", "allCustomers"}, allEntries = true)
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public Customer createCustomer(Customer customer) {
         if (customerRepository.existsByEmail(customer.getEmail())) {
             throw new RuntimeException("Клиент с таким email уже существует");
         }
         customer.setCreatedAt(java.time.LocalDateTime.now());
-        return customerRepository.save(customer);
+
+        // Сохраняем клиента в БД (синхронно)
+        Customer savedCustomer = customerRepository.save(customer);
+
+        // Асинхронно отправляем приветственное уведомление
+        notificationProducer.sendWelcomeEmail(
+                savedCustomer.getId(),
+                savedCustomer.getEmail(),
+                savedCustomer.getFirstName()
+        );
+
+        return savedCustomer;
     }
 
     @Override
     @CacheEvict(value = {"customers", "allCustomers"}, allEntries = true)
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public Customer updateCustomer(Long id, Customer customerDetails) {
         Customer customer = customerRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Клиент не найден"));
@@ -86,7 +102,7 @@ public class CustomerServiceImpl implements CustomerService {
 
     @Override
     @CacheEvict(value = {"customers", "allCustomers"}, allEntries = true)
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public void deleteCustomer(Long id) {
         customerRepository.deleteById(id);
     }

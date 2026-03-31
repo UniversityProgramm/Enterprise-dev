@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/v1/customers")
@@ -33,7 +34,7 @@ public class CustomerController {
             @RequestParam(required = false) String email,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "id,asc") String sort) {  // ← параметр sort здесь
+            @RequestParam(defaultValue = "id,asc") String sort) {
 
         // Парсинг параметра сортировки
         String[] sortParams = sort.split(",");
@@ -42,7 +43,6 @@ public class CustomerController {
                 : Sort.Direction.ASC;
         String sortBy = sortParams[0];
 
-        // Создание Pageable с сортировкой
         Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
 
         Page<Customer> customers = customerService.getAllCustomers(firstName, lastName, email, pageable);
@@ -53,7 +53,7 @@ public class CustomerController {
      * Получить клиента по ID
      */
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ROLE_USER', 'ROLE_ADMIN')")
     public ResponseEntity<Customer> getCustomerById(@PathVariable Long id) {
         return customerService.getCustomerById(id)
                 .map(ResponseEntity::ok)
@@ -64,7 +64,7 @@ public class CustomerController {
      * Создать нового клиента
      */
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<Customer> createCustomer(@RequestBody Customer customer) {
         Customer createdCustomer = customerService.createCustomer(customer);
         return ResponseEntity.status(HttpStatus.CREATED).body(createdCustomer);
@@ -74,7 +74,7 @@ public class CustomerController {
      * Обновить клиента
      */
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<Customer> updateCustomer(
             @PathVariable Long id,
             @RequestBody Customer customerDetails) {
@@ -86,7 +86,7 @@ public class CustomerController {
      * Удалить клиента
      */
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<Void> deleteCustomer(@PathVariable Long id) {
         customerService.deleteCustomer(id);
         return ResponseEntity.noContent().build();

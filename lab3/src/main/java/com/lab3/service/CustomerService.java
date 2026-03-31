@@ -1,6 +1,5 @@
 package com.lab3.service;
 
-
 import com.lab3.entity.Customer;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

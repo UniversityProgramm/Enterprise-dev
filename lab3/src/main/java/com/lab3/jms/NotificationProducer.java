@@ -26,7 +26,7 @@ public class NotificationProducer {
      */
     public void sendWelcomeEmail(Long customerId, String email, String firstName) {
         WelcomeEmailMessage message = new WelcomeEmailMessage(customerId, email, firstName);
-        log.info(" Отправка сообщения в очередь {}: {}", emailQueue, message);
+        log.info("Отправка сообщения в очередь {}: {}", emailQueue, message);
 
         jmsTemplate.convertAndSend(emailQueue, message, new MessagePostProcessor() {
             @Override
